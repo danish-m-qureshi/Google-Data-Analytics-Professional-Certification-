@@ -1,0 +1,240 @@
+R code used in the notebook,
+
+### Loading packages
+library(tidyverse)
+library(data.table)
+
+### Importing Data Sets
+
+# activity_daily contains data on total steps and total distance recorded.
+activity_daily_march <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/dailyActivity_merged.csv")
+
+activity_daily_april <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_4.12.16-5.12.16/Fitabase Data 4.12.16-5.12.16/dailyActivity_merged.csv")
+
+activity_daily <- rbind(activity_daily_march, activity_daily_april)
+
+# calories_daily contains data on calories burned per day.
+calories_daily <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_4.12.16-5.12.16/Fitabase Data 4.12.16-5.12.16/dailyCalories_merged.csv")
+
+# calories_hourly contains data on calories burned per hour.
+calories_hourly_march <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/hourlyCalories_merged.csv")
+calories_hourly_april <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_4.12.16-5.12.16/Fitabase Data 4.12.16-5.12.16/hourlyCalories_merged.csv")
+calories_hourly <- rbind(calories_hourly_march, calories_hourly_april)
+
+# intensities_daily contains data on daily active minutes and total distance recorded.
+intensities_daily <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_4.12.16-5.12.16/Fitabase Data 4.12.16-5.12.16/dailyIntensities_merged.csv")
+
+# intensities_hourly contains data on active minutes per hour and average hourly intensity (hourly active minutes/60minutes *100).
+intensities_hourly_march <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/hourlyIntensities_merged.csv")
+intensities_hourly_april <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_4.12.16-5.12.16/Fitabase Data 4.12.16-5.12.16/hourlyIntensities_merged.csv")
+intensities_hourly <- rbind(intensities_hourly_march, intensities_hourly_april)
+
+# steps_daily contains data on total steps per day.
+steps_daily <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_4.12.16-5.12.16/Fitabase Data 4.12.16-5.12.16/dailySteps_merged.csv")
+
+# steps_hourly contains data on total steps per hour.
+steps_hourly_march <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/hourlySteps_merged.csv")
+steps_hourly_april <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_4.12.16-5.12.16/Fitabase Data 4.12.16-5.12.16/hourlySteps_merged.csv")
+steps_hourly <- rbind(steps_hourly_march, steps_hourly_april)
+
+# sleep_daily contains data on minutues asleep vs. minutes in bed
+sleep_daily <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_4.12.16-5.12.16/Fitabase Data 4.12.16-5.12.16/sleepDay_merged.csv")
+activity_daily <- merge(activity_daily, sleep_daily, by = "Id", all = TRUE)
+
+# weight_log contains data on weight and BMI
+weight_log_march <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/weightLogInfo_merged.csv")
+weight_log_april <- read.csv("/kaggle/input/fitbit/mturkfitbit_export_4.12.16-5.12.16/Fitabase Data 4.12.16-5.12.16/weightLogInfo_merged.csv")
+weight_log <- rbind(weight_log_march, weight_log_april)
+
+### Fixing Formats
+
+activity_daily$ActivityDate=as.Date(activity_daily$ActivityDate, format="%m/%d/%Y")
+
+activity_daily$SleepDay=as.Date(activity_daily$SleepDay, format="%m/%d/%Y")
+
+calories_daily$ActivityDay=as.Date(calories_daily$ActivityDay, format="%m/%d/%Y")
+
+calories_hourly$ActivityHour <- as.POSIXct(calories_hourly$ActivityHour, format = "%m/%d/%Y %I:%M:%S %p")
+calories_hourly$time <- as.ITime(calories_hourly$ActivityHour)
+calories_hourly$date <- as.Date(calories_hourly$ActivityHour)
+
+intensities_daily$ActivityDay=as.Date(intensities_daily$ActivityDay, format="%m/%d/%Y")
+
+intensities_hourly$ActivityHour = as.POSIXct(intensities_hourly$ActivityHour, format="%m/%d/%Y %I:%M:%S %p")
+intensities_hourly$time <- as.ITime(intensities_hourly$ActivityHour)
+intensities_hourly$date <- as.Date(intensities_hourly$ActivityHour)
+
+
+steps_daily$ActivityDay=as.Date(steps_daily$ActivityDay, format="%m/%d/%Y")
+
+steps_hourly$ActivityHour = as.POSIXct(steps_hourly$ActivityHour, format="%m/%d/%Y %I:%M:%S %p")
+steps_hourly$time <- as.ITime(steps_hourly$ActivityHour)
+steps_hourly$date <- as.Date(steps_hourly$ActivityHour)
+
+weight_log$Date=as.Date(weight_log$Date, format="%m/%d/%Y")
+
+### Overview of Data
+glimpse(activity_daily)
+glimpse(calories_daily)
+glimpse(calories_hourly)
+glimpse(intensities_daily)
+glimpse(intensities_hourly)
+glimpse(steps_daily)
+glimpse(steps_hourly)
+glimpse(weight_log)
+
+### Exploring and Summarising Data
+# count the number of participants
+n_distinct(activity_daily$Id)
+n_distinct(calories_daily$Id)
+n_distinct(calories_hourly$Id)
+n_distinct(intensities_daily$Id)
+n_distinct(intensities_hourly$Id)
+n_distinct(steps_daily$Id)
+n_distinct(steps_hourly$Id)
+n_distinct(weight_log$Id)
+
+
+activity_daily %>%
+    select(TotalSteps,
+           TotalDistance,
+           SedentaryMinutes, Calories) %>%
+    summary()
+
+activity_daily %>%
+    select(VeryActiveMinutes,
+           FairlyActiveMinutes,
+           LightlyActiveMinutes) %>%
+    summary()
+
+activity_daily %>%
+    select(TotalMinutesAsleep,
+           TotalTimeInBed) %>%
+    summary()
+
+calories_hourly %>%
+    select(Calories) %>%
+    summary()
+
+intensities_hourly %>%
+    select(TotalIntensity,
+           AverageIntensity) %>%
+    summary()
+    
+steps_daily %>%
+    select(StepTotal) %>%
+    summary()
+
+steps_hourly %>%
+    select(StepTotal)%>%
+    summary()
+
+weight_log %>%
+    select(WeightKg,
+           BMI) %>%
+    summary()
+
+
+### Visualizations
+
+# Setting plot size
+options(repr.plot.width = 10, repr.plot.height = 8)
+
+# Calculating mean
+mean_StepTotal <- mean(steps_daily$StepTotal)
+mean_Calories <- mean(calories_daily$Calories)
+mean_TotalDistance <- mean(activity_daily$TotalDistance)
+
+# Plotting histogram for Total Steps with mean line and label
+ggplot(steps_daily, aes(x = StepTotal)) +
+  geom_histogram(binwidth = 2000, fill = 'lightblue', color = 'black') + 
+  geom_vline(xintercept = mean_StepTotal, color = "black", linetype = "dashed", size = 1) +  # Add mean line
+  geom_text(aes(x = mean_StepTotal - 500, label = paste("Mean:", round(mean_StepTotal, 0))),  # Add label for mean line
+            y = -3, x=11000, color = "black", size = 5) +  # Adjust y position and appearance of label
+  labs(title = 'Distribution of Total Steps',
+       x = 'Total Steps',
+       y = 'Frequency') +
+  scale_x_continuous(breaks = seq(min(steps_daily$StepTotal), max(steps_daily$StepTotal), by = 4000 )) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 14),  # Increase font size of x-axis labels
+        axis.text.y = element_text(size = 14),
+        axis.title = element_text(size = 16),
+        plot.title = element_text(size = 20))
+
+# Plotting histogram for Calories burned with mean line and label
+ggplot(calories_daily, aes(x = Calories)) +
+  geom_histogram(binwidth = 500, fill = 'lightblue', color = 'black') + 
+  geom_vline(xintercept = mean_Calories, color = "black", linetype = "dashed", size = 1) +  # Add mean line
+  geom_text(aes(x = mean_Calories - 500, label = paste("Mean:", round(mean_Calories, 0))),  # Add label for mean line
+            y = -10, x=1800, color = "black", size = 5) +  # Adjust y position and appearance of label
+  labs(title = 'Distribution of Calories Burned',
+       x = 'Calories Burned',
+       y = 'Frequency') +
+  scale_x_continuous(breaks = seq(min(calories_daily$Calories), max(calories_daily$Calories), by = 500)) +  # Adjust X-axis breaks
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 14),  # Increase font size of x-axis labels
+        axis.text.y = element_text(size = 14),
+        axis.title = element_text(size = 16),
+        plot.title = element_text(size = 20))
+
+# Plotting histogram for Calories burned with mean line and label
+ggplot(activity_daily, aes(x =TotalDistance)) +
+  geom_histogram(binwidth = 1, fill = 'lightblue', color = 'black') + 
+  geom_vline(xintercept = mean_TotalDistance, color = "black", linetype = "dashed", size = 1) +  # Add mean line
+  geom_text(aes(x = mean_TotalDistance - 500, label = paste("Mean:", round(mean_TotalDistance, 0))),  # Add label for mean line
+            y = -50, x=4, color = "black", size = 5) +  # Adjust y position and appearance of label
+  labs(title = 'Distribution of Total Distance Covered',
+       x = 'Total Distance',
+       y = 'Frequency') +
+  scale_x_continuous(breaks = seq(min(activity_daily$TotalDistance), max(activity_daily$TotalDistance), by = 1)) +  # Adjust X-axis breaks
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 14),  # Increase font size of x-axis labels
+        axis.text.y = element_text(size = 14),
+        axis.title = element_text(size = 16),
+        plot.title = element_text(size = 20))
+
+# Plotting Total Steps vs. Calories Burned
+ggplot(data = activity_daily, aes(x = TotalSteps, y = Calories)) +
+  geom_point() + 
+  geom_smooth() + 
+  labs(title = "Total Steps vs. Calories Burned") +
+  scale_x_continuous(breaks = seq(min(activity_daily$TotalSteps), max(activity_daily$TotalSteps), by = 3000)) +
+  geom_vline(xintercept = mean_ActivityStepTotal, color = "black", linetype = "dashed", size = 1) +
+  geom_text(aes(x = mean_StepTotal - 500, label = paste("Mean:", round(mean_StepTotal, 0))),  # Add label for mean line
+            y = -3, x=11000, color = "black", size = 5) +
+  theme(plot.title = element_text(size = 20),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        axis.title = element_text(size = 16))
+
+# Plotting Average Intensity vs. Time in Hour
+# Assuming 'time' is a time variable, convert it to character
+intensities_hourly_summary <- intensities_hourly %>%
+  drop_na() %>%
+  group_by(time) %>%
+  summarise(mean_total_intensity = mean(TotalIntensity)) %>%
+  mutate(time = as.character(time))
+
+# Plotting average intensity over time as a bar chart
+ggplot(data = intensities_hourly_summary, aes(x = time, y = mean_total_intensity)) + 
+  geom_bar(stat = "identity", fill = 'darkblue') +
+  labs(title = "Average Intensity vs. Time in hours") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, size=14),
+        plot.title = element_text(size = 20),
+        axis.text.y = element_text(size = 14),
+        axis.title = element_text(size = 16))
+
+# Plotting Total minutes asleep vs. total time in bed
+mean_totalminutesasleep <- mean(sleep_daily$TotalMinutesAsleep)
+
+ggplot(data = activity_daily, aes(x = TotalMinutesAsleep, y = TotalTimeInBed)) +
+  geom_point() + 
+  geom_smooth() + 
+  labs(title = "Total Minutes Asleep vs. Total Time in Bed") +
+  geom_vline(xintercept = 418.30, color = "black", linetype = "dashed", size = 1) +
+  geom_text(aes(x = mean_TotalDistance, label = paste("Mean: 419")),
+            y = 120, x=350, color = "black", size = 5) +
+  theme(plot.title = element_text(size = 20),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        axis.title = element_text(size = 16))
